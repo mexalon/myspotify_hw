@@ -26,10 +26,10 @@ def get_author(name: str):
     time.sleep(0.5)
     if response.json()['artists']['items']:
         author = {'id': response.json()['artists']['items'][0]['id'],
-                  'name': response.json()['artists']['items'][0]['name'],
+                  'name': [response.json()['artists']['items'][0]['name']],
                   'genre': response.json()['artists']['items'][0]['genres']
                   }
-        if author['name'].lower() == name.lower():
+        if author['name'][0].lower() == name.lower():
             output = author
 
     else:
@@ -88,57 +88,69 @@ def get_all_about(name: str):
     return output
 
 
-def insert_it_in_db(it):
-    passw = 'myspotifypass'
+def get_connection(passw: str):
     db = f'postgresql://myspotify:{passw}@localhost:5432/myspotify'
     engine = sqlalchemy.create_engine(db)
     connection = engine.connect()
-
-    # для тестов - очищаю всёб что было
-    clear_db(connection)
-    # очистка лога
-    del_log()
-
-    this_author_id = insert_author(it, connection)
-    print(this_author_id)
-    its_genre_ids = insert_genre(it, connection)
-    print(its_genre_ids )
+    return connection
 
 
-def insert_genre(it, connection):
+def put_author(it, connection):
+    author_id = [insert_fields(f"""'{it['name'][0]}'""", 'author', 'name', connection)]
+    return author_id
+
+
+def put_genre(it, connection):
     genre_ids = []
     for entry in it['genre']:
-        result = connection.execute(f"""SELECT id FROM genre WHERE name = '{entry}';""").fetchone()
-        if not result:
-            query_string = f"""INSERT INTO genre(name)
-                    VALUES('{entry}');"""
-            connection.execute(query_string)
-            log_it(query_string)
-            one_genre_id = get_max_id('genre', connection)
+        result = is_it_there(entry, 'genre', 'name', connection)
+        if result:  # уже есть запись с таким значением, а должна быть уникальной
+            one_item_id = result[0]
         else:
-            one_genre_id = result[0]
+            one_item_id = insert_fields(f"""'{entry}'""", "genre", "name", connection)
 
-        genre_ids.append(one_genre_id)
+        genre_ids.append(one_item_id)
 
     return genre_ids
 
 
-    # result = connection.execute("""SELECT * FROM author;""").fetchmany(10)
-    # pprint(result)
-    #
-    # result = connection.execute("""SELECT first_name, last_name FROM actor
-    # WHERE last_name LIKE '%%ge%%' ORDER BY first_name;""").fetchall()
-    # pprint(result)
+def put_albums(it, connection):
+    album_ids = []
+    for entry in it['albums']:
+        album_id = insert_fields(f"""'{entry["name"]}', {entry['year']}""", "album", "name, year", connection)
+        track_ids = []
+        for item in entry['tracks']:
+            one_track_id = insert_fields(f"""'{item["name"]}', {item['duration']}, {album_id}""",
+                                             "track", "name, duration, album_id", connection)
+            track_ids.append(one_track_id)
+
+        album_ids.append({'album_id': album_id, 'track_ids': track_ids})
+
+    return album_ids
 
 
-def insert_author(it, connection):
-    query_string = f"""INSERT INTO author(name)
-           VALUES('{it["name"]}');"""
+def insert_it_in_db(it, connection):
+    author_id = put_author(it, connection)
+    print(author_id)
+
+    genre_ids = put_genre(it, connection)
+    print(genre_ids)
+
+    album_ids = put_albums(it, connection)
+    print(album_ids)
+
+
+def insert_fields(what: str, table: str, fields: str, connection):
+    query_string = f"""INSERT INTO {table}({fields})\nVALUES({what});"""
     connection.execute(query_string)
     log_it(query_string)
-    author_id = get_max_id('author', connection)
-    print(author_id)
-    return author_id
+    item_id = get_max_id(table, connection)
+    return item_id
+
+
+def is_it_there(source: str, table: str, field: str, connection):
+    result = connection.execute(f"""SELECT id FROM {table} WHERE {field} = '{source}';""").fetchone()
+    return result
 
 
 def get_max_id(table_name: str, connection):
@@ -149,7 +161,7 @@ def get_max_id(table_name: str, connection):
 
 def log_it(entry: str):
     with open('query_log.txt', 'a') as f:
-        f.write(entry + '\n')
+        f.write(entry + '\n\n')
 
 
 def del_log():
@@ -159,17 +171,25 @@ def del_log():
 
 
 def clear_db(connection):
-    delete_list = (
-        'author', 'genre', 'album', 'track', 'compilation', 'Genre_Author', 'Album_Author', 'Compilation_Track')
+    delete_list = ('Genre_Author', 'Album_Author', 'Compilation_Track', 'track',
+                   'author', 'genre', 'album', 'compilation',)
     for entry in delete_list:
         query_string = f"""DELETE FROM {entry};"""
         connection.execute(query_string)
 
 
 def gogo():
+    password = get_token('passw.txt')
+    connection = get_connection(password)
+
+    # для тестов - очищаю всёб что было
+    clear_db(connection)
+    # очистка лога
+    del_log()
+
     it = get_all_about('them crooked vultures')
     if it:
-        insert_it_in_db(it)
+        insert_it_in_db(it, connection)
 
 
 if __name__ == '__main__':
