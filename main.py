@@ -13,6 +13,9 @@ BAND_LIST = ['Iron Maiden',
              'U2',
              'Depeche Mode']
 
+DB_USER = 'myspotify'
+DATABASE = 'myspotify'
+
 
 def get_token(file_name: str):
     """получить токен из файла
@@ -105,7 +108,7 @@ def get_all_about(name: str):
 
 def get_connection(passw: str):
     """логинится в базу"""
-    db = f'postgresql://myspotify:{passw}@localhost:5432/myspotify'
+    db = f'postgresql://{DB_USER}:{passw}@localhost:5432/{DATABASE}'
     engine = sqlalchemy.create_engine(db)
     connection = engine.connect()
     return connection
@@ -329,9 +332,9 @@ def gogo():
     log_file_name = 'query_log.txt'
 
     # для тестов - очищаю всё, что было
-    clear_db(connection)
+    #clear_db(connection)
     # очистка лога
-    del_log(log_file_name)
+    #del_log(log_file_name)
 
     for entry in BAND_LIST:
         it = get_all_about(entry)
