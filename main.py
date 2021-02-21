@@ -331,10 +331,11 @@ def gogo():
     connection = get_connection(password)
     log_file_name = 'query_log.txt'
 
-    # для тестов - очищаю всё, что было
-    #clear_db(connection)
-    # очистка лога
-    #del_log(log_file_name)
+    if False:
+        # для тестов - очищаю всё, что было
+        clear_db(connection)
+        # очистка лога
+        del_log(log_file_name)
 
     for entry in BAND_LIST:
         it = get_all_about(entry)
