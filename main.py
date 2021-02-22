@@ -14,7 +14,10 @@ BAND_LIST = ['Iron Maiden',
              'Depeche Mode']
 
 DB_USER = 'myspotify'
+DB_PASS_FILE_NAME = 'passw.txt'
 DATABASE = 'myspotify'
+
+SPOTIFY_TOKEN_FILE_NAME = 'spotify_token.txt'
 
 
 def get_token(file_name: str):
@@ -27,7 +30,7 @@ def get_token(file_name: str):
 
 def get_author(name: str):
     """Поиск автора по именни"""
-    token = get_token('spotify_token.txt')
+    token = get_token(SPOTIFY_TOKEN_FILE_NAME)
     endpoint = 'https://api.spotify.com/v1/search'
     response = requests.get(endpoint,
                             headers={"Accept": "application/json",
@@ -52,7 +55,7 @@ def get_author(name: str):
 
 def get_albums(id_: str):
     """Список альбомов автора по id автора"""
-    token = get_token('spotify_token.txt')
+    token = get_token(SPOTIFY_TOKEN_FILE_NAME)
     endpoint = f'https://api.spotify.com/v1/artists/{id_}/albums'
     response = requests.get(endpoint,
                             headers={"Accept": "application/json",
@@ -72,7 +75,7 @@ def get_albums(id_: str):
 
 def get_tracks(id_: str):
     """Список треков по id альбома"""
-    token = get_token('spotify_token.txt')
+    token = get_token(SPOTIFY_TOKEN_FILE_NAME)
     endpoint = f'https://api.spotify.com/v1/albums/{id_}/tracks'
     response = requests.get(endpoint,
                             headers={"Accept": "application/json",
@@ -327,7 +330,7 @@ def hw_4_2():
 
 def gogo():
     """наполняе базу данных"""
-    password = get_token('passw.txt')
+    password = get_token(DB_PASS_FILE_NAME)
     connection = get_connection(password)
     log_file_name = 'query_log.txt'
 
